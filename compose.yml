@@ -3,42 +3,37 @@ version: "3.8"
 services:
   netdata:
     image: netdata/netdata:stable
-    container_name: netdata
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE
     security_opt:
       - apparmor:unconfined
     environment:
-      - DOMAIN_NETDATA=${DOMAIN_NETDATA}
       - DO_NOT_TRACK=1
       - TZ=${TZ}
     volumes:
       - netdataconfig:/etc/netdata
       - netdatalib:/var/lib/netdata
       - netdatacache:/var/cache/netdata
-      # lectures host
       - /etc/passwd:/host/etc/passwd:ro
       - /etc/group:/host/etc/group:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /etc/os-release:/host/etc/os-release:ro
-      # 👇 pour que Netdata voie les conteneurs
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # pour métriques Docker
     labels:
       - traefik.enable=true
-      # 👇 Traefik doit utiliser le réseau "coolify"
       - traefik.docker.network=coolify
-      # 👇 Router simple côté HTTP (TLS terminé par Cloudflare Tunnel)
-      - traefik.http.routers.netdata.rule=Host(`${DOMAIN_NETDATA}`)
-      - traefik.http.routers.netdata.entryPoints=http
-      # 👇 Port interne de Netdata
       - traefik.http.services.netdata.loadbalancer.server.port=19999
+      - traefik.http.routers.netdata.entryPoints=http
+      - traefik.http.routers.netdata.rule=Host(`${DOMAIN_NETDATA}`)
+      - traefik.http.routers.netdata.priority=101
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:19999/api/v1/info >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:19999/api/v1/info >/dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 45s
     networks:
       - coolify
 
@@ -51,3 +46,4 @@ networks:
   coolify:
     external: true
     name: coolify
+
