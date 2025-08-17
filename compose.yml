@@ -11,6 +11,7 @@ services:
     security_opt:
       - apparmor:unconfined
     environment:
+      - DOMAIN_NETDATA=${DOMAIN_NETDATA}
       - DO_NOT_TRACK=1
       - TZ=${TZ}
     volumes:
