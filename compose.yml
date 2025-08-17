@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  netdata:
+    image: netdata/netdata:stable
+    container_name: netdata
+    restart: unless-stopped
+    # Pas d'exposition de ports, Traefik route en interne vers 19999
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - DO_NOT_TRACK=1
+      - TZ=${TZ}
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      # Montages host en lecture seule pour collecter les métriques système
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:19999/api/v1/info || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - default
+      - coolify
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:
+
+networks:
+  coolify:
+    external: true
+    name: coolify
