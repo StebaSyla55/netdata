@@ -4,13 +4,11 @@ services:
   netdata:
     image: netdata/netdata:stable
     restart: unless-stopped
-    cap_add:
-      - SYS_PTRACE
-    security_opt:
-      - apparmor:unconfined
+    cap_add: [ SYS_PTRACE ]
+    security_opt: [ apparmor:unconfined ]
     environment:
-      - DO_NOT_TRACK=1
-      - TZ=${TZ}
+      DO_NOT_TRACK: "1"
+      TZ: ${TZ:-Europe/Paris}
     volumes:
       - netdataconfig:/etc/netdata
       - netdatalib:/var/lib/netdata
@@ -20,16 +18,13 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /etc/os-release:/host/etc/os-release:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro  # pour métriques Docker
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     labels:
       - traefik.enable=true
       - traefik.docker.network=coolify
       - traefik.http.services.netdata.loadbalancer.server.port=19999
-      - traefik.http.routers.netdata.entryPoints=http
-      - traefik.http.routers.netdata.rule=Host(`${DOMAIN_NETDATA}`)
-      - traefik.http.routers.netdata.priority=101
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:19999/api/v1/info >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:19999/api/v1/info >/dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -46,4 +41,3 @@ networks:
   coolify:
     external: true
     name: coolify
-
